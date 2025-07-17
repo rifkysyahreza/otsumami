@@ -3,7 +3,7 @@
 An AI-powered Japanese otsumami (drinking snacks) recommendation app that suggests perfect snacks based on current weather conditions, budget, and dietary restrictions.
 
 ## DISCLAIMER
-- This project is build by using **Vibe Coding** method as my educational purpose
+This project is build by using **Vibe Coding** method as my educational purpose
 
 ## Features
 
@@ -13,6 +13,23 @@ An AI-powered Japanese otsumami (drinking snacks) recommendation app that sugges
 - **Responsive Design**: Works on desktop and mobile devices
 - **Real-time Weather Integration**: Uses OpenWeatherMap API for current weather data
 - **Modular Architecture**: Clean separation of components, hooks, and services
+
+## Technologies Used
+
+### Frontend
+- Next.js 14 with App Router
+- TypeScript
+- Tailwind CSS
+- React Hooks
+
+### Backend
+- FastAPI
+- Pydantic
+- Python 3.8+
+
+### APIs
+- OpenWeatherMap API for weather data
+- IP Geolocation for location detection
 
 ## Project Structure
 
@@ -55,16 +72,15 @@ Otsumami/
 
 Copy the environment template and add your API key:
 
-```bash
-cp env.example .env.local
-```
+inside frontend folder, create a file name `.env.local`
 
 Edit `.env.local` and add your OpenWeatherMap API key:
 ```env
 NEXT_PUBLIC_OPENWEATHER_API_KEY=your_actual_api_key_here
 NEXT_PUBLIC_API_URL=http://localhost:8000``
+```
 
-### 2Backend Setup
+### 2. Backend Setup
 
 ```bash
 cd backend
@@ -81,7 +97,7 @@ python main.py
 
 Backend will be available at `http://localhost:8000`
 
-###3. Frontend Setup
+### 3. Frontend Setup
 
 ```bash
 cd frontend
@@ -138,23 +154,6 @@ The otsumami dataset includes100tems with:
 - Regional origins
 - Meal time preferences
 
-## Technologies Used
-
-### Frontend
-- Next.js 14 with App Router
-- TypeScript
-- Tailwind CSS
-- React Hooks
-
-### Backend
-- FastAPI
-- Pydantic (v1 for compatibility)
-- Python 3.8+
-
-### APIs
-- OpenWeatherMap API for weather data
-- IP Geolocation for location detection
-
 ## Development
 
 ### Adding New Components
@@ -202,7 +201,8 @@ Add new items to `dataset/seed.json` following the existing structure:
 
 ## Troubleshooting
 
-### Common Issues1Weather API Errors**: Ensure your OpenWeatherMap API key is valid
+### Common Issues
+1. **Weather API Errors**: Ensure your OpenWeatherMap API key is valid
 2. **Backend Connection Issues**: Check that the backend is running on port 8000. **CORS Errors**: The backend includes CORS middleware for localhost:3000
 
 ### Windows Installation Issues
