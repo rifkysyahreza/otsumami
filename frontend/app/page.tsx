@@ -1,7 +1,29 @@
 "use client";
 
-import { useState } from "react";
-import { fetchRecommendations, RecommendationRequest, Otsumami } from "./api";
+import { useState, useEffect } from "react";
+import WeatherSelector from '@/components/forms/WeatherSelector';
+import BudgetSelector from '@/components/forms/BudgetSelector';
+import AllergenSelector from '@/components/forms/AllergenSelector';
+import RecommendationCard from '@/components/ui/RecommendationCard';
+import { useWeather } from '@/hooks/useWeather';
+import { useRecommendations } from '@/hooks/useRecommendations';
+import { Otsumami } from '@/types/otsumami';
+const WEATHER_OPTIONS = [
+  { value: "晴れ", label: "晴れ (Sunny)" },
+  { value: "雨", label: "雨 (Rain)" },
+  { value: "曇り", label: "曇り (Cloudy)" },
+  { value: "寒い", label: "寒い (Cold)" },
+  { value: "暑い", label: "暑い (Hot)" },
+];
+
+const BUDGET_OPTIONS = [
+  { value: 500, label: "¥500 (Under ¥500)" },
+  { value: 1000, label: "¥1000 (Under ¥1000)" },
+  { value: 1500, label: "¥1500 (Under ¥1500)" },
+  { value: 2000, label: "¥2000 (Under ¥2000)" },
+  { value: 3000, label: "¥3000 (Under ¥3000)" },
+  { value: 5000, label: "¥5000 (Under ¥5000)" }
+];
 
 const ALLERGENS = [
   "小麦", // Wheat
@@ -17,133 +39,122 @@ const ALLERGENS = [
   "ナッツ類" // Tree nuts
 ];
 
-const WEATHER_OPTIONS = [
-  { value: "晴れ", label: "晴れ (Sunny)" },
-  { value: "雨", label: "雨 (Rain)" },
-  { value: "曇り", label: "曇り (Cloudy)" },
-  { value: "寒い", label: "寒い (Cold)" },
-  { value: "暑い", label: "暑い (Hot)" },
-];
-
 export default function Home() {
-  const [weather, setWeather] = useState(WEATHER_OPTIONS[0].value);
-  const [budget, setBudget] = useState(1000);
-  const [allergens, setAllergens] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [recommendations, setRecommendations] = useState<Otsumami[] | null>(null);
+  const [budget, setBudget] = useState<number>(1000);
+  const [selectedAllergens, setSelectedAllergens] = useState<string[]>([]);
+  
+  const {
+    weatherMode, 
+    setWeatherMode, 
+    manualWeather, 
+    setManualWeather, 
+    currentWeather, 
+    weatherLoading, 
+    getCurrentWeather 
+  } = useWeather();
+  
+  const { recommendations, loading: recLoading, error: recError, fetchRecommendations } = useRecommendations();
+
+  // Get current weather when auto mode is selected
+  useEffect(() => {
+    if (weatherMode === 'auto') {
+      getCurrentWeather();
+    }
+  }, [weatherMode, getCurrentWeather]);
+
+  const handleGetRecommendations = () => {
+    const weather = weatherMode === 'auto' ? currentWeather : manualWeather;
+    if (!weather) return;
+    
+    fetchRecommendations({
+      weather,
+      budget,
+      allergens: selectedAllergens
+    });
+  };
 
   const handleAllergenChange = (allergen: string) => {
-    setAllergens((prev) =>
+    setSelectedAllergens((prev) =>
       prev.includes(allergen)
         ? prev.filter((a) => a !== allergen)
         : [...prev, allergen]
     );
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setRecommendations(null);
-    const req: RecommendationRequest = { weather, budget, allergens };
-    try {
-      const recs = await fetchRecommendations(req);
-      setRecommendations(recs);
-    } catch (err: any) {
-      setError(err.message || "Failed to fetch recommendations");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-pink-100 via-blue-50 to-green-100 p-4">
-      <div className="w-full max-w-md bg-white/80 rounded-xl shadow-lg p-6 md:p-8 backdrop-blur-md mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-center mb-6 text-blue-500">Otsumami AI Recommender</h1>
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <fieldset className="border-none p-0">
-            <legend className="block text-sm font-medium text-gray-700 mb-2">Weather</legend>
-            <div className="flex flex-wrap gap-2">
-              {WEATHER_OPTIONS.map((opt) => (
-                <label key={opt.value} className="flex items-center space-x-2 bg-blue-50/60 rounded-md px-2 py-1 cursor-pointer hover:bg-blue-100 transition">
-                  <input
-                    type="radio"
-                    name="weather"
-                    value={opt.value}
-                    checked={weather === opt.value}
-                    onChange={() => setWeather(opt.value)}
-                    className="accent-blue-400 w-4 h-4"
-                  />
-                  <span className="text-xs text-gray-700">{opt.label}</span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Budget (¥)</label>
-            <input
-              type="number"
-              min={500}
-              max={2000}
-              value={budget}
-              onChange={(e) => setBudget(Number(e.target.value))}
-              className="w-full rounded-lg border border-gray-300 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 px-4 py-2 bg-pink-50/50 text-gray-800 placeholder-gray-400 outline-none transition"
-              required
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 p-4">
+      <div className="max-w-4xl mx-auto">
+        <header className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">
+            おつまみ推薦
+          </h1>
+          <p className="text-gray-600">
+            Find the perfect Japanese drinking snacks for your mood and budget
+          </p>
+        </header>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-semibold mb-4 text-gray-800">Weather</h2>
+            <WeatherSelector 
+              weatherMode={weatherMode}
+              manualWeather={manualWeather}
+              onWeatherModeChange={setWeatherMode}
+              onManualWeatherChange={setManualWeather}
+              weatherOptions={WEATHER_OPTIONS}
+              loading={weatherLoading}
+              currentWeather={currentWeather}
             />
           </div>
-          <fieldset className="border-none p-0">
-            <legend className="block text-sm font-medium text-gray-700 mb-2">Allergens</legend>
-            <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
-              {ALLERGENS.map((allergen) => (
-                <label key={allergen} className="flex items-center space-x-2 bg-green-50/60 rounded-md px-2 py-1 cursor-pointer hover:bg-green-100 transition">
-                  <input
-                    type="checkbox"
-                    checked={allergens.includes(allergen)}
-                    onChange={() => handleAllergenChange(allergen)}
-                    className="accent-pink-400 w-4 h-4"
-                  />
-                  <span className="text-xs text-gray-700">{allergen}</span>
-                </label>
+
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-semibold mb-4 text-gray-800">Budget Range</h2>
+            <BudgetSelector 
+              budget={budget}
+              onBudgetChange={setBudget}
+              budgetOptions={BUDGET_OPTIONS}
+            />
+          </div>
+
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-semibold mb-4 text-gray-800">Allergens to Avoid</h2>
+            <AllergenSelector 
+              selectedAllergens={selectedAllergens}
+              onAllergenChange={handleAllergenChange}
+              allergens={ALLERGENS}
+            />
+          </div>
+        </div>
+
+        <div className="text-center mb-8">
+          <button
+            onClick={handleGetRecommendations}
+            disabled={weatherLoading || recLoading}
+            className="bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white font-semibold py-3 rounded-lg transition-colors duration-200"
+          >
+            {recLoading ? 'Finding recommendations...' : 'Get Recommendations'}
+          </button>
+        </div>
+
+        {recError && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 mb-6">
+            {recError}
+          </div>
+        )}
+
+        {recommendations && recommendations.length > 0 && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-gray-800 text-center mb-6">
+              Recommended Otsumami
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {recommendations.map((otsumami: Otsumami) => (
+                <RecommendationCard key={otsumami.id} item={otsumami} />
               ))}
             </div>
-          </fieldset>
-          <button
-            type="submit"
-            className="w-full py-2 rounded-lg bg-gradient-to-r from-pink-300 via-blue-200 to-green-200 text-blue-900 font-semibold shadow hover:from-pink-200 hover:to-green-100 transition text-lg"
-            disabled={loading}
-          >
-            {loading ? "Loading..." : "Submit"}
-          </button>
-        </form>
-        {error && <div className="mt-4 text-red-500 text-center">{error}</div>}
+          </div>
+        )}
       </div>
-      {recommendations && (
-        <div className="w-full max-w-2xl bg-white/80 rounded-xl shadow-lg p-6 md:p-8 backdrop-blur-md">
-          <h2 className="text-xl font-bold text-blue-500 mb-4 text-center">Recommended Otsumami</h2>
-          {recommendations.length === 0 ? (
-            <div className="text-center text-gray-500">No recommendations found for your criteria.</div>
-          ) : (
-            <ul className="grid gap-4 md:grid-cols-2">
-              {recommendations.map((item) => (
-                <li key={item.id} className="flex flex-col items-center bg-pink-50/60 rounded-lg p-4 shadow hover:bg-pink-100 transition">
-                  <img
-                    src={item.image_url}
-                    alt={item.name_en}
-                    className="w-24 h-24 object-cover rounded mb-2 border border-pink-200"
-                  />
-                  <div className="font-bold text-blue-700 text-lg mb-1">{item.name_en} <span className="text-xs text-gray-500">({item.name_kanji})</span></div>
-                  <div className="text-sm text-gray-700 mb-1">{item.description_en}</div>
-                  <div className="text-xs text-gray-500 mb-1">Category: {item.category} / {item.subcategory}</div>
-                  <div className="text-xs text-gray-500 mb-1">Price: ¥{item.price_range[0]}–{item.price_range[1]}</div>
-                  <div className="text-xs text-gray-500 mb-1">Calories: {item.calories} kcal</div>
-                  <div className="text-xs text-gray-500">Pairs with: {item.alcohol_pairing.join(", ")}</div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-    </main>
+    </div>
   );
 }
